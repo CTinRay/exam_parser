@@ -1,5 +1,3 @@
-
-
 from bs4 import BeautifulSoup
 import re
 import string
@@ -30,7 +28,10 @@ def extract_GSAP_subsection_title2( tag_list, start_index):
     return { 'parsed_str':tag_list[start_index].string,
              'next_index':start_index + 1}
 
-
+def check_blank_line( tag_list, start_index ):
+    pattern = re.compile( '^[ \xa0]*$' )    
+    return pattern.match( tag_list[start_index].text )
+    
 def check_GSAP_subsection_title( tag_list, start_index ):
     '''Check if encounter a subsection title
        If encounter title of level 1 (Ex: 第壹部分：選擇題 ) return 1
@@ -39,6 +40,7 @@ def check_GSAP_subsection_title( tag_list, start_index ):
     '''
     tag_str = tag_list[start_index]
     text = tag_str.text
+
     pattern1 = re.compile( '[ ]*第[壹貳參肆伍陸柒捌玖拾]部分：.*' )
     pattern2 = re.compile( '[ ]*[一二三四五六七八九十]、.*' )
     if( re.match( pattern1, text ) ):
@@ -62,18 +64,19 @@ def get_multi_opt_description( tag_list, start_index, opt_type ):
     parsed_str = ""
     next_index = start_index
     first_opt_str = { 'numeric':'(1)', 'alphetic': '(A)' }[opt_type]
-    tag_str = tag_list[next_index].text
-    while tag_str[:3] != first_opt_str:
-        parsed_str += tag_str
+    tag = tag_list[next_index]
+    while tag.text[:3] != first_opt_str:
+        parsed_str += str(tag)
         start_index += 1
-        tag_str = str(tag_list[next_index])
-    
-    return { 'parsed_str':parsed_str, 'next_index':processed_index}
+        tag = tag_list[start_index]    
+        
+    return { 'parsed_str':parsed_str, 'next_index':start_index}
 
 
 def get_multi_opt_answers( tag_list, start_index, opt_type ):
     '''
-    Get the answer part of a mulitiple choise problem.  
+    Get the answer part of a mulitiple choise problem.
+    Return parsed_str -> html that contain the answer part.
     Parameter opt_type specify the type of option. 
     Available type are numeric, alphetic.
     Eg. numeric: (1) (2) (3) (4) (5)
@@ -81,14 +84,16 @@ def get_multi_opt_answers( tag_list, start_index, opt_type ):
     '''
     parsed_str = ""
     next_index = start_index
-    tag_str = tag_list[next_index].string
-    re = { 'numeric':'^([0-9])', 'alphetic':'^([A-Z]' }[opt_type]
-    
-    while search( re, tag_str ):
-        parsed_str += tag_str
-        start_index += 1
-        tag_str = tag_list[next_index]
-    return { 'parsed_str':parsed_str, 'next_index':processed_index}
+    tag = tag_list[next_index]
+    expression = { 'numeric':'^[ ]*\([0-9]\).*', 'alphetic':'^[ ]*\([A-Z]\).*' }[opt_type]
+    pattern = re.compile( expression ) 
+
+    while pattern.search( tag.text ):
+        parsed_str += str(tag)
+        next_index += 1
+        tag = tag_list[next_index]
+
+    return { 'parsed_str':parsed_str, 'next_index':next_index}
 
 
 def split_multi_opt_answer( str_answers_part, opt_type ):
@@ -109,15 +114,16 @@ def split_multi_opt_answer( str_answers_part, opt_type ):
                      'O', 'P', 'Q', 'R', 'S', 'T', 'N',
                      'V', 'W', 'X', 'Y', 'Z'],
                     'numeric':
-                    ['0', '1', '2', '3', '4', 
+                    ['1', '2', '3', '4', 
                      '5', '6', '7', '8', '9' ] }[opt_type]
 
     #Find the start position of all options
     start_pos = 0
     start_pos_list = []
     for option in option_list:
-        if( stripped_answer.find( '(' + option + ')' ) ):
-                start_pos_list.append( stripped_answer.index( '(' + option + ')' ) )
+        index = stripped_answer.find( '(' + option + ')' )        
+        if index != -1 :
+            start_pos_list.append( index )
         else:
             break
 
@@ -157,10 +163,17 @@ def parse_multi_opt_question_part( tag_list, start_index, opt_type ):
     
     # Parse questions until encounter title of any level
     while check_GSAP_subsection_title( tag_list, start_index ) == 0 :
+        if check_blank_line( tag_list, start_index ):
+            #debug
+            print( "Blank" )
+            start_index += 1
+            continue
+        #debug
+        print( "Checking:'",tag_list[start_index].text,"'" ) 
         result = parse_multi_opt_question( tag_list, start_index, opt_type )
         start_index = result['next_index']
         questions.append( result['question'] )
-        
+
     return {'questions':questions, 'next_index':start_index }
     
 
@@ -184,11 +197,12 @@ def parse_GSAP( tag_list ):
     start_index = result['next_index']
     multi_opt_questions = result['questions']
 
-    return { { 'title': title1,
+    print( multi_opt_questions )
+    return  { 'title': title1,
                '0': { 'title': title2,
                  'questions': multi_opt_questions }
                }
-             }
+             
 
 #Start of main function
 soup = BeautifulSoup( open( './docx_to_html/03-104學測數學定稿.htm', encoding='big5' ) , "lxml"  ) 
