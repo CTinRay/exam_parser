@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html >
+	<head>
+		<link rel="icon" href="images/LOGO-1.png" type="image/x-icon"> 
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta charset="UTF-8">
+		<title>Parser Demo</title>
+
+		<!-- <link rel="stylesheet" href="css/general.css"> -->
+
+		
+		<script src="bower_components/angular/angular.js"></script>
+		<script src="bower_components/angular-sanitize/angular-sanitize.js"></script>				
+		<script src="js/ng-controllers.js"></script>
+	</head>
+
+	<body ng-app="demoApp">
+		<div ng-controller="mainController">
+			<div ng-repeat="question in exam[0].questions">
+				<b> Question </b>			
+				<div ng-bind-html="question.description"></div>
+				<ul>
+					<li ng-repeat="ans in question.answers" ng-bind-html="ans">
+						
+					</li>
+				</ul>
+			</div>
+		</div>
+	</body>
+
+</html> 

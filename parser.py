@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import re
 import string
+import json
 
 def strip_all_tags( tag_str ):
     '''Make all tags in the str disappear, only text reamin'''
@@ -17,7 +18,7 @@ def extract_GSAP_subsection_title1( tag_list, start_index ):
     '''Skip the title of subsection level 1 in General Scholastic Ability Test.
     Ex: 第壹部分：選擇題
     '''
-    return { 'parsed_str':tag_list[start_index].string,
+    return { 'parsed_str':tag_list[start_index].text,
              'next_index':start_index + 1}
 
 
@@ -25,7 +26,7 @@ def extract_GSAP_subsection_title2( tag_list, start_index):
     '''Skip the title of subsection level 2 in General Scholastic Ability Test.
     Ex: 一、單選題（占20分）
     '''
-    return { 'parsed_str':tag_list[start_index].string,
+    return { 'parsed_str':tag_list[start_index].text,
              'next_index':start_index + 1}
 
 def check_blank_line( tag_list, start_index ):
@@ -164,12 +165,8 @@ def parse_multi_opt_question_part( tag_list, start_index, opt_type ):
     # Parse questions until encounter title of any level
     while check_GSAP_subsection_title( tag_list, start_index ) == 0 :
         if check_blank_line( tag_list, start_index ):
-            #debug
-            print( "Blank" )
             start_index += 1
             continue
-        #debug
-        print( "Checking:'",tag_list[start_index].text,"'" ) 
         result = parse_multi_opt_question( tag_list, start_index, opt_type )
         start_index = result['next_index']
         questions.append( result['question'] )
@@ -197,7 +194,7 @@ def parse_GSAP( tag_list ):
     start_index = result['next_index']
     multi_opt_questions = result['questions']
 
-    print( multi_opt_questions )
+
     return  { 'title': title1,
                '0': { 'title': title2,
                  'questions': multi_opt_questions }
@@ -211,4 +208,4 @@ soup = BeautifulSoup( open( './docx_to_html/03-104學測數學定稿.htm', encod
 #Therefore, the tag list contains those {paragraphs, div, span, blah~ }
 tag_list = soup.html.body.div.find_all(True, recursive=False)
 
-print( parse_GSAP(tag_list) )    
+print( json.JSONEncoder().encode(parse_GSAP(tag_list) ) )
