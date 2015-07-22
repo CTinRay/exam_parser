@@ -3,6 +3,8 @@ import re
 import string
 import json
 import sys
+import chardet
+from chardet.universaldetector import UniversalDetector
 
 def strip_all_tags( tag_str ):
     '''Make all tags in the str disappear, only text reamin'''
@@ -182,11 +184,10 @@ def parse_multi_opt_question_part( tag_list, start_index, opt_type ):
 
     return {'questions':questions, 'next_index':start_index }
     
+        
 
-def parse_GSAP( tag_list ):
-    '''Parse the whole contain of GSAP exam'''
-    opt_type = 'alphebatic'
-    
+def parse_GSAP( tag_list, opt_type ):
+    '''Parse the whole contain of GSAP exam'''    
     start_index = 0
     result = skip_GSAP_head( tag_list, start_index )
     start_index = result['next_index']
@@ -208,13 +209,85 @@ def parse_GSAP( tag_list ):
                '0': { 'title': title2,
                  'questions': multi_opt_questions }
                }
-             
+
+
+def make_soup( html_bytes, encoding ):
+    print( "LOG: Encoding html to Python string...", file=sys.stderr )
+    raw_html = html_bytes.decode( encoding, 'ignore' )
+
+    print( "LOG: Start parsing HTML", file=sys.stderr )
+    soup = BeautifulSoup( raw_html , "lxml"  ) 
+
+    return soup
+
+def analyze_option_type( soup ):
+    '''Analize the type of options in the exam
+       ( eg. (A), (B), (C), ... or (1), (2), (3), ... ) 
+       based on the frequency of the first option of each type.
+       ( ex. the first one of alphebatic options is (A) )
+    '''
+    
+    plain_text = soup.text
+
+    opt_pattern_list = { 'alphebatic': "\n[ ]*\([ ]*A[ ]*\)",
+                         'numeric': "\n[ ]*\([ ]*1[ ]*\)" }
+
+    #Find the pattern type which has the most match
+    greatest_type = ""
+    greatest_match = 0
+    for opt_type, opt_pattern in opt_pattern_list.items():
+        pattern = re.compile(opt_pattern)
+        n_match = len( pattern.findall( plain_text ) )
+        if n_match > greatest_match:
+            greatest_match = n_match
+            greatest_type = opt_type
+            
+    return greatest_type
+
+
+def get_html_encodeing(soup):
+    encode = soup.meta.get('charset')
+    if encode == None:
+        encode = soup.meta.get('content-type')
+        if encode == None:
+            content = soup.meta.get('content')
+            match = re.search('charset=(.*)', content)
+            if match:
+                encode = match.group(1)
+            else:
+                raise ValueError('unable to find encodeing')
+    return encode
+
+
 
 #Start of main function
-soup = BeautifulSoup( open( sys.argv[1], encoding='utf-8' ) , "lxml"  ) 
+print( "LOG: Opening file...", file=sys.stderr )
+html_bytes = open( sys.argv[1], 'rb' ).read()
+
+default_encoding = "big5"
+encoding = default_encoding
+# print( "LOG: Auto detect html encoding...", file=sys.stderr )
+# encoding = chardet.detect( html_bytes )['encoding']
+# print( "LOG: Detected encoding: ", encoding, file=sys.stderr  )
+
+soup = make_soup( html_bytes, encoding )
 
 #All tags meaningful is under html -> body -> div -> { paragraphs, div, span, blah ~ }
 #Therefore, the tag list contains those {paragraphs, div, span, blah~ }
 tag_list = soup.html.body.div.find_all(True, recursive=False)
 
-print( json.JSONEncoder().encode(parse_GSAP(tag_list) ) )
+print( "LOG: Rechecking encoding according to html meta charset", file=sys.stderr )
+encoding = get_html_encodeing( soup )
+
+if encoding != default_encoding:
+    print( "WARN: The encoding of the file is not default encoding(",
+           default_encoding,
+           ")" )
+    print( "LOG: Try to decode html file with detected encode" )
+    soup = make_soup( html_bytes, encoding )
+
+
+opt_type = analyze_option_type( soup )
+print( "LOG: Analyzed option type = ", opt_type, file=sys.stderr )
+    
+print( json.JSONEncoder().encode(parse_GSAP(tag_list, opt_type) ) )
