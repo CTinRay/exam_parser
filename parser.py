@@ -2,16 +2,12 @@ from bs4 import BeautifulSoup
 import re
 import string
 import json
+import sys
 
 def strip_all_tags( tag_str ):
     '''Make all tags in the str disappear, only text reamin'''
     pattern = re.compile( '<[^>]*>' )
     return pattern.sub( '', tag_str )
-
-
-def skip_GSAP_head( tag_list, start_index ):
-    '''Skip the dummy cover of General Scholastic Ability Test.'''
-    return { 'parsed_str':"", 'next_index':20}
 
 
 def extract_GSAP_subsection_title1( tag_list, start_index ):
@@ -53,18 +49,27 @@ def check_GSAP_subsection_title( tag_list, start_index ):
         else:
             return 0
 
-
+def skip_GSAP_head( tag_list, start_index ):
+    '''Skip the dummy cover of General Scholastic Ability Test.
+    --> go through until encounter subsection title
+    '''
+    parsed_str = "" 
+    while check_GSAP_subsection_title( tag_list, start_index ) == 0:
+        parsed_str += str( tag_list[start_index] )
+        start_index += 1
+    return { 'parsed_str':parsed_str, 'next_index':start_index}
+        
 def get_multi_opt_description( tag_list, start_index, opt_type ):
     '''
     Get the question part of a mulitiple choise problem.
     Parameter opt_type specify the type of option. 
-    Available type are numeric, alphetic.
+    Available type are numeric, alphebatic.
     Eg. numeric: (1) (2) (3) (4) (5)
-        alphetic: (A) (B) (C) (D) (E)
+        alphebatic: (A) (B) (C) (D) (E)
     '''
     parsed_str = ""
     next_index = start_index
-    first_opt_str = { 'numeric':'(1)', 'alphetic': '(A)' }[opt_type]
+    first_opt_str = { 'numeric':'(1)', 'alphebatic': '(A)' }[opt_type]
     tag = tag_list[next_index]
     while tag.text[:3] != first_opt_str:
         parsed_str += str(tag)
@@ -79,14 +84,14 @@ def get_multi_opt_answers( tag_list, start_index, opt_type ):
     Get the answer part of a mulitiple choise problem.
     Return parsed_str -> html that contain the answer part.
     Parameter opt_type specify the type of option. 
-    Available type are numeric, alphetic.
+    Available type are numeric, alphebatic.
     Eg. numeric: (1) (2) (3) (4) (5)
-        alphetic: (A) (B) (C) (D) (E)
+        alphebatic: (A) (B) (C) (D) (E)
     '''
     parsed_str = ""
     next_index = start_index
     tag = tag_list[next_index]
-    expression = { 'numeric':'^[ ]*\([0-9]\).*', 'alphetic':'^[ ]*\([A-Z]\).*' }[opt_type]
+    expression = { 'numeric':'^[ ]*\([0-9]\).*', 'alphebatic':'^[ ]*\([A-Z]\).*' }[opt_type]
     pattern = re.compile( expression ) 
 
     while pattern.search( tag.text ):
@@ -128,6 +133,9 @@ def split_multi_opt_answer( str_answers_part, opt_type ):
         else:
             break
 
+    #Add the ending position
+    start_pos_list.append( len(stripped_answer) )
+                
     #Split the string based on the position list
     option_str_dict = {}
     n_pos = len( start_pos_list)
@@ -135,13 +143,14 @@ def split_multi_opt_answer( str_answers_part, opt_type ):
         start = start_pos_list[i]
         end = start_pos_list[i+1]
         opt = option_list[i]
-        option_str_dict[opt] = stripped_answer[start:end]
+        option_str_dict[i] = stripped_answer[start:end]
 
     return option_str_dict
 
 
 def parse_multi_opt_question( tag_list, start_index, opt_type ):
     '''Return a dictionary of a multiple option question'''
+
     
     result = get_multi_opt_description( tag_list, start_index, opt_type )
     start_index = result['next_index']
@@ -166,7 +175,7 @@ def parse_multi_opt_question_part( tag_list, start_index, opt_type ):
     while check_GSAP_subsection_title( tag_list, start_index ) == 0 :
         if check_blank_line( tag_list, start_index ):
             start_index += 1
-            continue
+            continue        
         result = parse_multi_opt_question( tag_list, start_index, opt_type )
         start_index = result['next_index']
         questions.append( result['question'] )
@@ -176,7 +185,7 @@ def parse_multi_opt_question_part( tag_list, start_index, opt_type ):
 
 def parse_GSAP( tag_list ):
     '''Parse the whole contain of GSAP exam'''
-    opt_type = 'numeric'
+    opt_type = 'alphebatic'
     
     start_index = 0
     result = skip_GSAP_head( tag_list, start_index )
@@ -202,7 +211,7 @@ def parse_GSAP( tag_list ):
              
 
 #Start of main function
-soup = BeautifulSoup( open( './docx_to_html/03-104學測數學定稿.htm', encoding='big5' ) , "lxml"  ) 
+soup = BeautifulSoup( open( sys.argv[1], encoding='utf-8' ) , "lxml"  ) 
 
 #All tags meaningful is under html -> body -> div -> { paragraphs, div, span, blah ~ }
 #Therefore, the tag list contains those {paragraphs, div, span, blah~ }

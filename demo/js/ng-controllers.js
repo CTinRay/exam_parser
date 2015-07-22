@@ -1,7 +1,7 @@
 
 'use strict';
 
-var requestURL = "./data/exam_test.json";
+var requestURL = "./data/math.json";
 
 var demoApp = angular.module('demoApp', ['ngSanitize'] );
 
