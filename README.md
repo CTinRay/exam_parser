@@ -23,7 +23,7 @@ chardet: detect file encoding
 * The first argument of the program is the path of the html file which is to be parsed.
 * The program will output the parsed json file in standard output. And some information (error/log/warn) about the parsing process will output in standard error. 
 * example
-** python parser.py ./path/of/the/html/file.htm > ./output.json
+ * python parser.py ./path/of/the/html/file.htm > ./output.json
 
 # Output json format.
 
@@ -44,7 +44,7 @@ The structure of multiple question contains two part, descriptions and answers.
 The answers part is an array of options.
 
 So the example struct of an exam json file is like that:
-
+````
 Parsed exam 
 │
 ├─img_belongings
@@ -104,6 +104,6 @@ Parsed exam
 		│	├──"5...."
 		│	└──"..."
 
-
+````
 
 
