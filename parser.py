@@ -184,7 +184,43 @@ def parse_multi_opt_question_part( tag_list, start_index, opt_type ):
 
     return {'questions':questions, 'next_index':start_index }
     
+def find_img_belong_to( exam ):
+    '''
+    For all the images in the exam, 
+    find out which questions they belong to respectively
+    '''
+    #Each element of the array is a list (img_list),
+    #which contains all the images the question have
+    img_in_exam = []
+
+    #For all part in the exam
+    for part in exam['question_parts']:
+
+        img_in_part = []
+
+        #For all questions in the part
+        for question in part['questions']:
+            img_in_question = []
+
+            #Find all the images in the description
+            img_tags = BeautifulSoup( question['description'], 'lxml' ).find_all('img')
+            for img_tag in img_tags:
+                img_in_question.append( img_tag.attrs['src'] )
+
+            #For all the options in the question
+            for key, opt in question['answers'].items():
+
+                #Find all the images in the option
+                img_tags = BeautifulSoup( opt, 'lxml' ).find_all('img')
+                for img_tag in img_tags:
+                    img_in_question.append( img_tag.attrs['src'] )
+
+            img_in_part.append(img_in_question )
+
+        img_in_exam.append( img_in_part )
         
+    return img_in_exam
+    
 
 def parse_GSAP( tag_list, opt_type ):
     '''Parse the whole contain of GSAP exam'''    
@@ -206,9 +242,13 @@ def parse_GSAP( tag_list, opt_type ):
 
 
     return  { 'title': title1,
-               '0': { 'title': title2,
-                 'questions': multi_opt_questions }
-               }
+               'question_parts':
+              [
+                  { 'title': title2,
+                    'questions': multi_opt_questions
+                  }              
+              ]
+              }
 
 
 def make_soup( html_bytes, encoding ):
@@ -289,5 +329,12 @@ if encoding != default_encoding:
 
 opt_type = analyze_option_type( soup )
 print( "LOG: Analyzed option type = ", opt_type, file=sys.stderr )
-    
-print( json.JSONEncoder().encode(parse_GSAP(tag_list, opt_type) ) )
+
+exam = parse_GSAP(tag_list, opt_type)
+img_belongings = find_img_belong_to( exam )
+
+output = { 'exam': exam,
+           'img_belongings': img_belongings
+           }
+
+print( json.JSONEncoder().encode( output ) )
