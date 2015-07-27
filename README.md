@@ -6,10 +6,11 @@
 * lxml: A library for pulling data out of HTML and XML files. 
 
 Using command to install:
-''''
+
+````
 sudo pip install beautifulsoup
 sudo pip install lxml
-''''
+````
 
 # 功能限制（到目前為止）
 * 支援提型與別稱（使用其他的題型可能會造成程式崩潰）
