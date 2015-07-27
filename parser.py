@@ -292,10 +292,10 @@ def analyze_following_question_type( tag_list, start_index ):
     then assert that the following questions is of the type )
     '''
 
-    #Each type has its keywords in the title.    
+    # Each type has its keywords in the title.
     type_keywords = { 'true_false' : [ '是非題', '圈圈叉叉' ],
                       'fill_in_blank': [ '填充題', '填空題' ],
-                      'multi_option': ['選擇題']
+                      'multi_option': ['選擇題', '單選題']
                       }
     title_text = tag_list[start_index].text
     for question_type, keywords in type_keywords.items():
