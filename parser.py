@@ -210,9 +210,14 @@ def parse_true_false_question_part( tag_list, start_index ):
         questions.append( str( tag_list[start_index] ) )
         start_index += 1
         pattern = re.compile( '^[ ]*[0-9]*[ ]*\.' )
-        while start_index < n_tags and not pattern.match( tag_list[start_index].text ):
+
+        while( start_index < n_tags
+               and not pattern.match( tag_list[start_index].text )
+               and check_GSAP_subsection_title( tag_list, start_index ) == 0 ):
+        
             questions.append( str( tag_list[start_index] ) )
             start_index += 1
+
     return { 'questions': questions, 'next_index': start_index }
 
 def parse_fill_in_the_blank_question_part( tag_list, start_index ):
@@ -220,12 +225,18 @@ def parse_fill_in_the_blank_question_part( tag_list, start_index ):
     n_tags = len( tag_list )
     
     questions = []
+
+    question_number_pattern = re.compile( '^[ ]*[0-9]*[ ]*\.' )
+    
     while start_index < n_tags and check_GSAP_subsection_title( tag_list, start_index ) == 0:
         questions.append( str( tag_list[start_index] ) )
         start_index += 1
-        while not re.match( '^[ ]*[0-9]*[ ]*\.' ):
+        while( start_index < n_tags
+               and not question_number_pattern.match( tag_list[start_index].text )
+               and not check_GSAP_subsection_title( tag_list, start_index ) ):
             questions.append( str( tag_list[start_index] ) )
             start_index += 1
+
     return { 'questions': questions, 'next_index': start_index }
 
 
@@ -291,7 +302,6 @@ def analyze_following_question_type( tag_list, start_index ):
         for keyword in keywords:
             if title_text.find( keyword ) != -1:
                 return question_type 
-
     return 'unknown'
     
 def parse_GSAP( tag_list, opt_type ):
@@ -354,7 +364,7 @@ def parse_general_exam( tag_list, opt_type ):
         elif question_type == 'fill_in_blank':
             result = parse_fill_in_the_blank_question_part( tag_list, start_index )
         else:
-            print( "Error: in parse_general_exam, unknow question type: ",
+            print( "Error: in parse_general_exam, unknown question type: ",
                    question_type, file=sys.stderr )
             return
 
