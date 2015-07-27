@@ -46,14 +46,14 @@ sudo pip install lxml
 * 包含兩部份：exam 與 img_belongings.
  * img_belongings: 的結構大致與exam 相同，每一個題目對應到一個陣列，陣列裡包含那一題使用的圖片。
  * exam: 至少會包含一個陣列（question_parts）貯存這份試卷的每一大題。
-  * question_parts: 這是一個陣列，裡面的每一個物件都代表著一大題。
-   * 陣列裡的物件： 每個大題都有一些屬性：
-    * title: 這一大題的標題，像是「一、多選題（每題5分）」。
-    * type: 這一大題的題型。可能會是 true_false（是非題）, multi_option（選擇題）, fill_in_blank（填充題）
-    * questions: 一個包含這一大題所有題目的陣列。
-     * 陣列裡的物件： 如果是是非題或填充題，則每個物件就直接是題目敘述了（字串）。若是選擇題，則每個物件都包含了：
-      * description: 題目的敘述
-      * answers: 選項
+   * question_parts: 這是一個陣列，裡面的每一個物件都代表著一大題。
+     * 陣列裡的物件： 每個大題都有一些屬性：
+        * title: 這一大題的標題，像是「一、多選題（每題5分）」。
+        * type: 這一大題的題型。可能會是 true_false（是非題）, multi_option（選擇題）, fill_in_blank（填充題）
+        * questions: 一個包含這一大題所有題目的陣列。
+          * 陣列裡的物件： 如果是是非題或填充題，則每個物件就直接是題目敘述了（字串）。若是選擇題，則每個物件都包含了：
+             * description: 題目的敘述
+             * answers: 選項
 * 可以參考文末結構圖
 
 
