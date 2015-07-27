@@ -191,7 +191,7 @@ def parse_multi_opt_question_part( tag_list, start_index, opt_type ):
     questions = []
     
     # Parse questions until encounter title of any level
-    while start_index < n_tag and check_GSAP_subsection_title( tag_list, start_index ) == 0 :
+    while start_index < n_tags and check_GSAP_subsection_title( tag_list, start_index ) == 0 :
         if check_blank_line( tag_list, start_index ):
             start_index += 1
             continue        
@@ -206,10 +206,11 @@ def parse_true_false_question_part( tag_list, start_index ):
     n_tags = len( tag_list )
 
     questions = []
-    while start_index < n_tag and check_GSAP_subsection_title( tag_list, start_index ) == 0:
+    while start_index < n_tags and check_GSAP_subsection_title( tag_list, start_index ) == 0:
         questions.append( str( tag_list[start_index] ) )
         start_index += 1
-        while not re.match( '^[ ]*[0-9]*[ ]*\.' ):
+        pattern = re.compile( '^[ ]*[0-9]*[ ]*\.' )
+        while start_index < n_tags and not pattern.match( tag_list[start_index].text ):
             questions.append( str( tag_list[start_index] ) )
             start_index += 1
     return { 'questions': questions, 'next_index': start_index }
@@ -247,21 +248,28 @@ def find_img_belong_to( exam ):
         for question in part['questions']:
             img_in_question = set()
 
-            #Find all the images in the description
-            img_tags = BeautifulSoup( question['description'], 'lxml' ).find_all('img')
-            for img_tag in img_tags:
-                img_in_question.add( img_tag.attrs['src'] )
-
-            #For all the options in the question
-            for key, opt in question['answers'].items():
-
-                #Find all the images in the option
-                img_tags = BeautifulSoup( opt, 'lxml' ).find_all('img')
+            if part['type'] == 'multi_option':
+                #Find all the images in the description
+                img_tags = BeautifulSoup( question['description'], 'lxml' ).find_all('img')
                 for img_tag in img_tags:
                     img_in_question.add( img_tag.attrs['src'] )
 
-            img_in_part.append( list( img_in_question ) )
+                #For all the options in the question
+                for key, opt in question['answers'].items():
 
+                    #Find all the images in the option
+                    img_tags = BeautifulSoup( opt, 'lxml' ).find_all('img')
+                    for img_tag in img_tags:
+                        img_in_question.add( img_tag.attrs['src'] )
+                        
+            else:
+                img_tags = BeautifulSoup( question, 'lxml' ).find_all('img')
+                for img_tag in img_tags:
+                    img_in_question.add( img_tag.attrs['src'] )
+
+                
+            img_in_part.append( list( img_in_question ) )
+            
         img_in_exam.append( img_in_part )
         
     return img_in_exam
@@ -279,7 +287,7 @@ def analyze_following_question_type( tag_list, start_index ):
                       'multi_option': ['選擇題']
                       }
     title_text = tag_list[start_index].text
-    for question_type, keywords in type_keywords:
+    for question_type, keywords in type_keywords.items():
         for keyword in keywords:
             if title_text.find( keyword ) != -1:
                 return question_type 
@@ -314,7 +322,7 @@ def parse_GSAP( tag_list, opt_type ):
               ]
               }
 
-def parse_general_question( tag_list, opt_type ):
+def parse_general_exam( tag_list, opt_type ):
     '''Parse the whole contain of general exam'''    
     parsed_exam = {}
 
@@ -330,15 +338,17 @@ def parse_general_question( tag_list, opt_type ):
     while start_index < n_tags:
         question_part = {}
 
+        question_type = analyze_following_question_type( tag_list, start_index )
+        print( "LOG: detect question type:", question_type, file=sys.stderr )
+        question_part['type'] = question_type
+        
         result = extract_GSAP_subsection_title1( tag_list, start_index )
         start_index = result['next_index']
         question_part['title'] = result['parsed_str']
         
-        question_type = analyze_following_question_type( question_part['title'] )
-
         # Base on the question type, call different function
         if question_type == 'multi_option':
-            result = parse_multi_opt_question( tag_list, start_index, opt_type )
+            result = parse_multi_opt_question_part( tag_list, start_index, opt_type )
         elif question_type == 'true_false':
             result = parse_true_false_question_part( tag_list, start_index )
         elif question_type == 'fill_in_blank':
@@ -350,7 +360,7 @@ def parse_general_question( tag_list, opt_type ):
 
         start_index = result['next_index']
 
-        question_part['questions'] = result['questions']
+        question_part['questions'] = result['questions']        
         parsed_exam['question_parts'].append( question_part )
                 
     return parsed_exam
