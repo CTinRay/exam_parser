@@ -1,9 +1,9 @@
 
 # Requirement
 
-python 3.4.3
-beautifulsoup: html parser
-lxml: A library for pulling data out of HTML and XML files. 
+* python 3.4.3
+* beautifulsoup: html parser
+* lxml: A library for pulling data out of HTML and XML files. 
 
 Using command to install:
 ''''
